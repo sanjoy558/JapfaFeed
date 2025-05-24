@@ -1,0 +1,480 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:circular_bottom_navigation/circular_bottom_navigation.dart';
+import 'package:circular_bottom_navigation/tab_item.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:get/get.dart';
+import 'package:japfa_feed_application/controllers/analysisController.dart';
+import 'package:japfa_feed_application/controllers/brochureListController.dart';
+import 'package:japfa_feed_application/controllers/dashboardController.dart';
+import 'package:japfa_feed_application/controllers/profileController.dart';
+import 'package:japfa_feed_application/controllers/purchaseOrderMainController.dart';
+import 'package:japfa_feed_application/controllers/userModel.dart';
+import 'package:japfa_feed_application/responses/DivisionResponse.dart';
+import 'package:japfa_feed_application/responses/PurchaseOrderResponse.dart';
+import 'package:japfa_feed_application/responses/UserGlobalResponse.dart';
+import 'package:japfa_feed_application/services/api_services.dart';
+import 'package:japfa_feed_application/utils/Constants.dart';
+import 'package:japfa_feed_application/utils/MainPresenter.dart';
+import 'package:flutter/services.dart';
+import 'package:japfa_feed_application/utils/ServiceHelper.dart';
+import 'package:japfa_feed_application/utils/SharePrefHelper.dart';
+import 'package:japfa_feed_application/utils/location_service.dart';
+import 'package:japfa_feed_application/views/DailyPlanReportScreen.dart';
+import 'package:japfa_feed_application/views/home_screen.dart';
+import 'package:location/location.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:japfa_feed_application/hive/localdatabase.dart';
+
+import '../responses/PermissionDeSerializing.dart';
+
+class HomeController extends GetxController {
+
+  var displayLoading = false.obs;
+  bool positionStreamStarted = false;
+
+
+  var tabIndex = 2.obs;
+  DateTime currentBackPressTime = DateTime.now();
+  bool navigation_drawer_open_close = false;
+  var userId = "";
+  var firstname = "";
+  var tokenid = "";
+  var login = "";
+  var designation = "".obs;
+
+  var userlock = "";
+  var app_version = "";
+
+  var permission="";
+
+  var total_km=0.0.obs;
+
+  var divisionList = List<DivisionResponse>.empty().obs;
+  var division_name = "".obs;
+  var division_Id = "".obs;
+  var division_visibility=true.obs;
+
+
+
+
+
+  double bottomNavBarHeight = 60;
+
+  List<TabItem> tabItems = List.of([
+
+    TabItem(
+      Icons.bar_chart,
+      "Statistics",
+      Colors.orange,
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Gilroy',
+      ),
+    ),
+    TabItem(
+      Icons.shopping_bag,
+      "New Order",
+      Colors.orange,
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Gilroy',
+      ),
+
+    ),
+    TabItem(
+      Icons.home,
+      "Home",
+      Colors.orange,
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Gilroy',
+      ),
+    ),
+    TabItem(
+      Icons.article_rounded,
+      "Brochure",
+      Colors.orange,
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Gilroy',
+      ),
+    ),
+    TabItem(
+      Icons.person,
+      "Profile",
+      Colors.orange,
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Gilroy',
+      ),
+    ),
+  ]);
+
+  late CircularBottomNavigationController navigationController;
+  
+  @override
+  void onInit() {
+
+    navigationController = CircularBottomNavigationController(tabIndex.value);
+
+    if (MainPresenter
+        .getInstance()
+        .userModel
+        .userId != null) {
+      userId = MainPresenter
+          .getInstance()
+          .userModel
+          .userId!;
+      firstname = MainPresenter
+          .getInstance()
+          .userModel
+          .firstName!;
+      tokenid = MainPresenter
+          .getInstance()
+          .userModel
+          .tokenid!;
+
+      designation.value = MainPresenter
+          .getInstance()
+          .userModel
+          .designation!;
+      login = MainPresenter.getInstance().userModel.login!;
+
+      /*permission = MainPresenter
+          .getInstance()
+          .userModel
+          .permission!;*/
+      MainPresenter.getInstance().printLog("userid tushar1", userId);
+      MainPresenter.getInstance().printLog("login tushar1", login);
+      MainPresenter.getInstance().printLog("login tushar123", designation.value);
+
+    /*String per=permission.replaceAll(r'\', '');
+      String jsonString = per.toString();
+      Map<String, dynamic> jsonMap = json.decode("$jsonString");
+      PermissionDeSerializing myData = PermissionDeSerializing.fromJson(jsonMap);
+      print("permission jsonString${myData.po}");*/
+      /*getKm();*/
+
+     // getDivisionSharedData();
+
+        getDivisionList();
+
+
+
+
+
+    }
+  }
+  @override
+  void dispose() {
+    super.dispose();
+    navigationController.dispose();
+  }
+
+  void getDivisionSharedData (String? divisionId,String? divisionName) async {
+    var user = UserModel();
+    user.userId=MainPresenter.getInstance().userModel.userId!;
+    user.login=MainPresenter.getInstance().userModel.login!;
+    user.usertype=MainPresenter.getInstance().userModel.usertype!;
+    user.firstName=MainPresenter.getInstance().userModel.firstName!;
+    user.designation=MainPresenter.getInstance().userModel.designation!;
+    user.zone=MainPresenter.getInstance().userModel.zone!;
+    user.authority=MainPresenter.getInstance().userModel.authority!;
+    user.IS_LOGIN_FIRST="true";
+    user.tokenid=MainPresenter.getInstance().userModel.tokenid!;
+    // user.permission=MainPresenter.getInstance().userModel.permission;
+    user.divisionid=divisionId.toString();
+    user.divisionname=divisionName.toString();
+    MainPresenter.getInstance().userModel = user;
+    SharePrefsHelper.saveUserModel(user);
+    division_name.value=divisionName.toString();
+    division_Id.value=divisionId.toString();
+
+  }
+
+
+
+
+  void changeTabIndex(int index) {
+    Get.put(HomeController());
+    Get.put(AnalysisContoller());
+
+    MainPresenter.getInstance().printLog("INDEX", index);
+    tabIndex .value= index;
+
+    if (index == 2) {
+      final dashboardcontroller=Get.find<DashboardController>();
+      if(dashboardcontroller.initialized){
+        dashboardcontroller.onInit();
+      }
+      division_visibility.value=true;
+    } else if (index == 0) {
+      final analysiscontroller=Get.find<AnalysisContoller>();
+      if(analysiscontroller.initialized){
+        analysiscontroller.onInit();
+      }
+      division_visibility.value=false;
+    } else if (index == 1) {
+      final purchaseOrderController=Get.find<PurchaseOrderMainController>();
+      if(purchaseOrderController.initialized){
+        purchaseOrderController.onInit();
+      }
+      division_visibility.value=false;
+    }else if (index == 3) {
+      final brochureController=Get.find<BrochureListController>();
+      if(brochureController.initialized){
+        brochureController.onInit();
+      }
+      division_visibility.value=false;
+    }else if (index == 4) {
+      final profileController=Get.find<ProfileController>();
+      if(profileController.initialized){
+        profileController.onInit();
+      }
+      division_visibility.value=false;
+    }
+    navigationController.value=tabIndex.value;
+    update();
+  }
+
+  Future<bool> exit() {
+    /* if (tabIndex != 0) {
+      back();
+      return Future.value(true);
+    }*/
+    DateTime now = DateTime.now();
+    if (currentBackPressTime == null ||
+        now.difference(currentBackPressTime) > Duration(seconds: 2)) {
+      currentBackPressTime = now;
+      SystemNavigator.pop();
+      return Future.value(false);
+    }
+    return Future.value(true);
+  }
+
+
+
+  void logoutApp() async{
+    if (navigation_drawer_open_close) {
+      SystemNavigator.pop();
+    }
+
+    final service = FlutterBackgroundService();
+    var isRunning = await service.isRunning();
+    if(isRunning){
+      ServiceHelper.stopService();
+    }
+
+    SharePrefsHelper.clearAll();
+    await LocalDataBase.instance!.cleanDatabase(0);
+    exit();
+  }
+
+
+
+  Future<void> openAndCloseLoadingDialog(String title, String msg) async {
+    Get.defaultDialog(title: title, content: Text("$msg"), actions: [
+      TextButton(
+          onPressed: () {
+            Get.back();
+          },
+          child: Text('OK'))
+    ]);
+  }
+
+  void alertDialog(String str_exit_logout) {
+    Get.dialog(
+      Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(
+                  Radius.circular(20),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Material(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.only(
+                            left: 10.0, top: 10.0, bottom: 10.0, right: 5.0),
+                        decoration: BoxDecoration(
+                            color: dashbordhighlight_blue,
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "${str_exit_logout}?",
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18.0,
+                                fontFamily: 'Gilroy',
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        "${str_exit_logout} now!!",
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              child: Text('Yes',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18.0,
+                                      fontFamily: 'Gilroy',
+                                      fontWeight: FontWeight.w600)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: loginEmployee,
+                                foregroundColor: const Color(0xFFFFFFFF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                FocusManager.instance.primaryFocus!.unfocus();
+                                Get.back();
+                                if(str_exit_logout=="Exit"){
+                                  exit();
+                                }else if(str_exit_logout=="Logout"){
+                                  logoutApp();
+                                }
+
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+
+
+                          Expanded(
+                            child: ElevatedButton(
+                              child: const Text('No',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18.0,
+                                      fontFamily: 'Gilroy',
+                                      fontWeight: FontWeight.w600)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: loginCustomer,
+                                foregroundColor: const Color(0xFFFFFFFF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              onPressed: () {
+                                Get.back();
+                                FocusManager.instance.primaryFocus!.unfocus();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /*void getKm() async{
+    total_km.value=await SharePrefsHelper.getDouble(
+        SharePrefsHelper.TOTAL_KM);
+  }*/
+
+  void getDivisionList() async {
+    print("tokenid : ${tokenid}");
+    displayLoading.value = true;
+    ApiService()
+        .executeWithBearerTokenGET('api/division/division-list/employee/${login}', tokenid!)
+        .then((value) async {
+      http.Response response = value;
+      if (response.statusCode == 200) {
+        displayLoading.value = false;
+        if (response.body != null) {
+
+          divisionList.value=(jsonDecode(response.body) as List)
+              .map((item) => DivisionResponse.fromJson(item))
+              .toList();
+
+
+          if(MainPresenter.getInstance().userModel.divisionid!=null){
+            division_Id.value=MainPresenter
+                .getInstance()
+                .userModel
+                .divisionid!;
+            division_name.value=MainPresenter
+                .getInstance()
+                .userModel
+                .divisionname!;
+          }else
+          {
+            getDivisionSharedData(divisionList.value[0].divisionId,divisionList.value[0].divisionName);
+          }
+
+         /* String abc= await SharePrefsHelper.getString(SharePrefsHelper.DIVISION_ID);
+          if(abc==""){
+            //MainPresenter.getInstance().showToast("empty");
+            divisionType.value=divisionList.value[0].divisionName!;
+            divisionId.value=divisionList.value[0].divisionId!;
+            SharePrefsHelper.setString(
+                SharePrefsHelper.DIVISION_TYPE, divisionType.value);
+            SharePrefsHelper.setString(
+                SharePrefsHelper.DIVISION_ID, divisionId.value);
+          }else {
+            divisionId.value=  await SharePrefsHelper.getString(SharePrefsHelper.DIVISION_ID);
+            divisionType.value=  await SharePrefsHelper.getString(SharePrefsHelper.DIVISION_TYPE);
+
+          }*/
+
+
+          MainPresenter.getInstance()
+              .printLog("divisionList list", divisionList.value.length);
+        } else {
+          displayLoading.value = false;
+
+        }
+      } else {
+        displayLoading.value = false;
+
+      }
+    }).catchError((onError) {
+      print(onError);
+      displayLoading.value = false;
+    });
+  }
+
+  void setDivisionData(int index) {
+
+    /*divisionType.value=divisionList.value[index].divisionName!;
+    divisionId.value=divisionList.value[index].divisionId!;*/
+    MainPresenter.getInstance().printLog("division name", divisionList.value[index].divisionName!);
+    MainPresenter.getInstance().printLog("division id", divisionList.value[index].divisionId!);
+    getDivisionSharedData(divisionList.value[index].divisionId!, divisionList.value[index].divisionName!);
+    Get.offAll(() => HomeScreen());
+
+  }
+
+
+}

@@ -1,0 +1,102 @@
+# ---------------------
+# General
+# ---------------------
+.DS_Store
+*.log
+*.pyc
+*.swp
+*.class
+*.tmp
+*.lock
+*.bak
+*.old
+*.orig
+
+# ---------------------
+# macOS
+# ---------------------
+.DS_Store
+
+# ---------------------
+# Flutter / Dart
+# ---------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.melos_tool/
+
+# ---------------------
+# Android
+# ---------------------
+*.iml
+*.apk
+*.ap_
+android/local.properties
+android/app/debug
+android/app/profile
+android/app/release
+android/.gradle/
+android/.idea/
+
+# ---------------------
+# iOS / macOS
+# ---------------------
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/.symlinks
+ios/Pods
+ios/Runner.xcworkspace
+ios/DerivedData/
+ios/.flutter-plugins
+ios/.flutter-plugins-dependencies
+ios/.generated/
+ios/Flutter/App.framework
+ios/Flutter/engine
+ios/build/
+
+# CocoaPods
+ios/Pods/
+ios/.podsymlinks
+ios/Podfile.lock
+
+# Xcode
+*.xcworkspace
+*.xcuserstate
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcuserdatad/
+
+# ---------------------
+# Visual Studio Code
+# ---------------------
+.vscode/
+
+# ---------------------
+# JetBrains / Android Studio
+# ---------------------
+.idea/
+*.iml
+
+# ---------------------
+# Firebase
+# ---------------------
+# Do not ignore these if you plan to manage them through Git.
+# Remove these lines if you want to commit them.
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# ---------------------
+# Others
+# ---------------------
+migrate_working_dir/
+.history/
+.svn/
+.buildlog/
+.atom/
